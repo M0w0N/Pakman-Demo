@@ -8,7 +8,7 @@ public class ScoreManager : MonoBehaviour
     [Header("UI 绑定")]
     [SerializeField] private TextMeshProUGUI scoreText; // 2. 拖入你的预制文本组件
 
-    private int currentScore = 0;
+    public int currentScore = 0;
 
     [Header("全局通关弹窗UI (从Persistent场景拖入)")]
     public GameObject panelLevelClear;

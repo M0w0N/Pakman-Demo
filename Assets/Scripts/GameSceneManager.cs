@@ -65,6 +65,8 @@ public class GameSceneManager : MonoBehaviour
     {
         Debug.Log("🏠 收到请求：正在从关卡返回主菜单...");
 
+        MainMenuController.shouldOpenLevelSelectDirectly = true;
+
         // ========== 新增：在卸载场景前，先把全局常驻的结算弹窗隐藏 ==========
         if (ScoreManager.Instance != null)
         {
@@ -88,5 +90,23 @@ public class GameSceneManager : MonoBehaviour
         {
             SceneManager.LoadScene("Scene_MainMenu", LoadSceneMode.Additive);
         }
+    }
+
+    public void ReplayCurrentLevel()
+    {
+        // 恢复游戏物理时间   
+        Time.timeScale = 1f;
+
+        // 清理分数
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.currentScore = 0;
+        }
+
+        // 2. 隐藏掉通关弹窗自己
+        gameObject.SetActive(false);
+
+        // 3. 重新加载这个场景，实现物理世界的彻底重置
+        SceneManager.LoadScene(currentLevelName);
     }
 }

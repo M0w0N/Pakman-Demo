@@ -7,11 +7,28 @@ public class MainMenuController : MonoBehaviour
     public GameObject panelMainMenu;     // 拖入 Panel_MainMenu
     public GameObject panelLevelSelect;   // 拖入 Panel_LevelSelect
 
+    public static bool shouldOpenLevelSelectDirectly = false;
+
     void Start()
     {
-        // 游戏启动时，铁律：确保主菜单显示，选关界面隐藏
-        if (panelMainMenu != null) panelMainMenu.SetActive(true);
-        if (panelLevelSelect != null) panelLevelSelect.SetActive(false);
+        if (shouldOpenLevelSelectDirectly)
+        {
+            // 啪！直接显示选关面板，隐藏主菜单面板
+            if (panelMainMenu != null) panelMainMenu.SetActive(false);
+            if (panelLevelSelect != null) panelLevelSelect.SetActive(true);
+
+            // 兑现完暗号后，记得立刻把暗号重置为 false！
+            // 否则以后玩家在电脑上刚双击启动游戏，也会直接蹦到选关页，那就穿帮了。
+            shouldOpenLevelSelectDirectly = false;
+
+            Debug.Log("📂 收到跨场景暗号：已直接为你切到选关面板！");
+        }
+        else
+        {  
+            // 游戏启动时，铁律：确保主菜单显示，选关界面隐藏
+            if (panelMainMenu != null) panelMainMenu.SetActive(true);
+            if (panelLevelSelect != null) panelLevelSelect.SetActive(false);
+        }       
     }
 
     // 【接口】点击主菜单的“选关”按钮时调用

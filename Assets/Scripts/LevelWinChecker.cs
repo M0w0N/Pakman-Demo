@@ -53,6 +53,7 @@ public class LevelWinChecker : MonoBehaviour
         if (hasWon) return; // 如果已经赢了，直接拦截，防止一帧内触发多次
         hasWon = true;
 
+
         Debug.Log("🏁 关卡裁判：通关条件达成！正在通知全局常驻 UI...");
 
         // 联动上一问：远程呼叫常驻场景（Persistent）里的账本，让它把大弹窗啪地弹出来
