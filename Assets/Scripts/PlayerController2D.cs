@@ -4,13 +4,19 @@ public class PlayerController2D : MonoBehaviour
 {
     private Rigidbody2D rb;
 
+    public float gravityStrength = 6f; // 引力强度，可以在 Inspector 中调整
+    public float maxSpeed = 6f; // 主角的最大速度，防止被引力拉得过快
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
 
         // 核心物理规范：关闭重力，由鼠标引力场接管
         rb.gravityScale = 0f;
+
+        // 增加了持续面向鼠标方向的脚本，此行不清楚是否应该继续保留
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        // 此选项在菜单中已存在，用于辅助脚本目标自动勾选
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
     }
 
@@ -19,15 +25,19 @@ public class PlayerController2D : MonoBehaviour
         if (Input.GetMouseButton(0))
         {
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            Vector2 gravitySource = new Vector2(mouseWorldPos.x, mouseWorldPos.y);
+            Vector2 mousePosition = new Vector2(mouseWorldPos.x, mouseWorldPos.y);
 
             Vector2 currentPosition = rb.position;
-            Vector2 gravitationalVector = gravitySource - currentPosition;
+            Vector2 gravitationalVector = mousePosition - currentPosition;
+            // 规范：引力向量的长度（即引力强度）由 gravityStrength 控制，而不是直接用距离
+            Vector2 pullDirection = gravitationalVector.normalized;
+            Vector2 finalForce = pullDirection * gravityStrength;
 
-            // 【物理平滑改动】
-            // 不要直接设置速度！而是施加一个持续的引力。
-            // ForceMode2D.Force 会把这个向量当成一个持续的拉力，完美与反弹力进行物理融合
-            rb.AddForce(gravitationalVector, ForceMode2D.Force);
+            rb.AddForce(finalForce, ForceMode2D.Force);
+        }
+        if(rb.linearVelocity.magnitude > maxSpeed)
+        {
+            rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
         }
     }
 
