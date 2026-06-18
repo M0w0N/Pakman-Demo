@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -16,10 +17,15 @@ public class PlayerController2D : MonoBehaviour
     public int dashEnergyCost = 20;   // 每次冲刺消耗的能量
     public int rewardEnergyGain = 5;
 
+    [Header("大力丸强化配置")]
+    public float powerUpDuration = 6f;   // 强化状态持续秒数
+    public float powerUpScale = 1.5f;    // 强化期间体积放大倍数
+    public bool IsPoweredUp { get; private set; }  // 敌人读取的状态标记
 
     // 状态控制变量
     // private bool isDashing = false;      // 状态锁：是否正在冲刺
     private float dashCooldownTimer = 0f;// CD 计时器
+    private Vector3 originalScale;
 
     void Start()
     {
@@ -33,6 +39,9 @@ public class PlayerController2D : MonoBehaviour
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         // 此选项在菜单中已存在，用于辅助脚本目标自动勾选
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+        // 记录初始大小，用于强化结束后复原
+        originalScale = transform.localScale;
     }
 
     void FixedUpdate()
@@ -86,20 +95,31 @@ public class PlayerController2D : MonoBehaviour
         // 规范：给你的豆子 Prefab 挂上一个叫 "Reward" 的 Tag
         if (other.CompareTag("Reward"))
         {
-            // 核心联动：一句话远程呼叫账本加分，不需要知道账本是怎么实现的
             if (ScoreManager.Instance != null)
             {
                 ScoreManager.Instance.AddScore(pointsPerPellet);
-
             }
             if (EnergyManager.Instance != null)
             {
-                EnergyManager.Instance.AddEnergy(rewardEnergyGain); // 每吃一个豆子增加 5 点能量
+                EnergyManager.Instance.AddEnergy(rewardEnergyGain); // 每吃一个豆子增加能量
             }
 
             // AudioSource.PlayClipAtPoint(...);
 
             // 完美的物理销毁：把被吃掉的豆子从世界里抹去
+            Destroy(other.gameObject);
+        }
+
+        // 吃大力丸：体积变大 + 敌人反向逃跑
+        if (other.CompareTag("PowerPellet"))
+        {
+            // 如果已经有强化状态在运行了，先停掉旧的避免叠状态
+            if (IsPoweredUp)
+            {
+                StopCoroutine(nameof(PowerUpTimer));
+            }
+            StartCoroutine(PowerUpTimer());
+
             Destroy(other.gameObject);
         }
     }
@@ -129,5 +149,23 @@ public class PlayerController2D : MonoBehaviour
         rb.AddForce(dashDirection * dashForce, ForceMode2D.Impulse);
 
         // 冲刺结束，恢复状态
+    }
+
+    /// <summary>
+    /// 大力丸强化倒计时：体积变大 → 持续 powerUpDuration 秒 → 体积复原
+    /// </summary>
+    private System.Collections.IEnumerator PowerUpTimer()
+    {
+        IsPoweredUp = true;
+        transform.localScale = originalScale * powerUpScale;
+
+        Debug.Log($"⚡ 大力丸激活！体积 x{powerUpScale}，持续 {powerUpDuration} 秒。敌人开始逃跑！");
+
+        yield return new WaitForSeconds(powerUpDuration);
+
+        IsPoweredUp = false;
+        transform.localScale = originalScale;
+
+        Debug.Log("⚡ 大力丸失效，攻守恢复。");
     }
 }
