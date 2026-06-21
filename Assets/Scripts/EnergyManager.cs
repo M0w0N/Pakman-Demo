@@ -1,5 +1,6 @@
 using UnityEngine;
-using UnityEngine.UI; // 必须引入 UI 命名空间
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class EnergyManager : MonoBehaviour
 {
@@ -8,6 +9,10 @@ public class EnergyManager : MonoBehaviour
 
     [Header("UI 组件引用")]
     public Slider energySlider;
+
+    [Header("场景名")]
+    [Tooltip("主菜单场景名，用于判断是否在关卡内")]
+    public string mainMenuSceneName = "Scene_MainMenu";
 
     [Header("能量参数")]
     public int maxEnergy = 100;    // 最大能量值
@@ -28,12 +33,43 @@ public class EnergyManager : MonoBehaviour
 
     void Start()
     {
-        // 初始化 UI 状态
         if (energySlider != null)
         {
             energySlider.maxValue = maxEnergy;
             energySlider.value = currentEnergy;
         }
+
+        // 进来先根据当前场景状态决定显隐
+        UpdateSliderVisibility();
+
+        // 监听场景加载/卸载，关卡切换时自动显隐
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
+    }
+
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        UpdateSliderVisibility();
+    }
+
+    private void OnSceneUnloaded(Scene scene)
+    {
+        UpdateSliderVisibility();
+    }
+
+    private void UpdateSliderVisibility()
+    {
+        if (energySlider == null) return;
+
+        // 主菜单场景存在 → 不在关卡内 → 隐藏能量槽
+        bool inLevel = !SceneManager.GetSceneByName(mainMenuSceneName).isLoaded;
+        energySlider.gameObject.SetActive(inLevel);
     }
 
     /// <summary>
