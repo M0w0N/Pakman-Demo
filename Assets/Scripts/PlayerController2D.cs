@@ -22,9 +22,15 @@ public class PlayerController2D : MonoBehaviour
     public float powerUpScale = 1.5f;    // 强化期间体积放大倍数
     public bool IsPoweredUp { get; private set; }  // 敌人读取的状态标记
 
+    [Header("物品吸取配置")]
+    public float magnetRadius = 1f;      // 吸物范围半径
+    public float magnetFlySpeed = 6f;     // 豆子飞向主角的速度（单位/秒）
+    public float magnetScanInterval = 0.15f; // 扫描间隔（秒），避免每帧扫
+
     // 状态控制变量
     // private bool isDashing = false;      // 状态锁：是否正在冲刺
     private float dashCooldownTimer = 0f;// CD 计时器
+    private float magnetScanTimer = 0f;   // 吸物扫描计时器
     private Vector3 originalScale;
 
     void Start()
@@ -83,6 +89,14 @@ public class PlayerController2D : MonoBehaviour
 
             // 如果能走到这里，说明 dashCooldownTimer <= 0，即不在冷却时间内
             PerformDash();
+        }
+
+        // 吸物扫描：按间隔执行，而非每帧
+        magnetScanTimer += Time.deltaTime;
+        if (magnetScanTimer >= magnetScanInterval)
+        {
+            magnetScanTimer = 0f;
+            PerformMagnetPull();
         }
     }
 
@@ -149,6 +163,25 @@ public class PlayerController2D : MonoBehaviour
         rb.AddForce(dashDirection * dashForce, ForceMode2D.Impulse);
 
         // 冲刺结束，恢复状态
+    }
+
+    /// <summary>
+    /// 扫描吸物范围内的 Reward 豆子，通知它们开始飞向主角
+    /// </summary>
+    private void PerformMagnetPull()
+    {
+        float currentRadius = IsPoweredUp ? magnetRadius * 1.5f : magnetRadius;
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, currentRadius);
+        foreach (Collider2D hit in hits)
+        {
+            if (!hit.CompareTag("Reward")) continue;
+
+            PelletMagnetReceiver receiver = hit.GetComponent<PelletMagnetReceiver>();
+            if (receiver == null) continue;
+
+            receiver.StartFlyToPlayer(transform, magnetFlySpeed);
+        }
     }
 
     /// <summary>
