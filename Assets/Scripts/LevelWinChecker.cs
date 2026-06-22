@@ -14,6 +14,11 @@ public class LevelWinChecker : MonoBehaviour
     public GameObject returnPointMarker;
     [Tooltip("Hint text (ReturnToStart mode only), auto-activated together with the return point marker")]
     public GameObject returnPointHint;
+    [Header("Progress Bar Target Marker")]
+    [Tooltip("Static marker RectTransform (arrow/line) inside Slider's Fill Area. Auto-positioned at the minimum threshold. Leave empty to skip.")]
+    public RectTransform targetMarker;
+    [Tooltip("If true, hides the Slider's built-in handle so only this static marker and fill bar show")]
+    public bool hideSliderHandle = true;
 
     // Internal state
     private int totalPellets = 0;
@@ -47,6 +52,30 @@ public class LevelWinChecker : MonoBehaviour
             progressSlider.minValue = 0f;
             progressSlider.maxValue = 1f;
             progressSlider.value = 0f;
+
+            // Hide Slider's built-in handle so it doesn't move with fill
+            if (hideSliderHandle && progressSlider.handleRect != null)
+            {
+                progressSlider.handleRect.gameObject.SetActive(false);
+            }
+        }
+
+        // Position the static target marker at the minimum threshold
+        // Parent to the Fill Area *container* (fillRect's parent), not the fill image itself,
+        // so the marker stays fixed while the fill bar grows.
+        if (targetMarker != null && totalPellets > 0)
+        {
+            float threshold = (float)config.pelletsRequiredForReturn / totalPellets;
+            RectTransform fillAreaContainer = progressSlider?.fillRect?.parent as RectTransform;
+            if (fillAreaContainer != null)
+            {
+                targetMarker.SetParent(fillAreaContainer, false);
+                targetMarker.pivot = new Vector2(0.5f, 0.5f);
+                // Anchor at the threshold percentage — stays fixed regardless of Fill Area's pixel size
+                targetMarker.anchorMin = new Vector2(threshold, 0.5f);
+                targetMarker.anchorMax = new Vector2(threshold, 0.5f);
+                targetMarker.anchoredPosition = Vector2.zero;
+            }
         }
 
         Debug.Log($"LevelWinChecker: [{config.levelName}], winCondition = {config.winCondition}");
