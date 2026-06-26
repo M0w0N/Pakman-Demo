@@ -4940,7 +4940,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gravityStrength: 6
-  maxSpeed: 7
+  maxSpeed: 8
   dashForce: 15
   dashDuration: 0.2
   dashCooldown: 1

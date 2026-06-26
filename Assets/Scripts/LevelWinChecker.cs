@@ -106,14 +106,14 @@ public class LevelWinChecker : MonoBehaviour
             case LevelConfig.WinCondition.ReturnToStart:
                 if (currentEaten >= config.pelletsRequiredForReturn && !returnUnlocked)
                 {
-                    UnlockReturnPoint();
+                    UnlockFinishPoint();
                 }
                 // Win is triggered by OnPlayerReachReturnPoint()
                 break;
 
             case LevelConfig.WinCondition.ReachExitTrigger:
                 {
-                    UnlockReturnPoint();
+                    UnlockFinishPoint();
                 }
                 // TriggerWin() is called externally by an exit trigger
                 break;
@@ -128,15 +128,15 @@ public class LevelWinChecker : MonoBehaviour
         progressSlider.value = Mathf.Clamp01((float)currentEaten / totalPellets);
     }
 
-    private void UnlockReturnPoint()
+    private void UnlockFinishPoint()
     {
         returnUnlocked = true;
 
-        if (returnPointMarker != null && config.winCondition == LevelConfig.WinCondition.ReturnToStart)
+        if (returnPointMarker != null)
         {
             returnPointMarker.SetActive(true);
         }
-        if (returnPointHint != null)
+        if (returnPointHint != null && config.winCondition == LevelConfig.WinCondition.ReturnToStart)
         {
             returnPointHint.SetActive(true);
         }
