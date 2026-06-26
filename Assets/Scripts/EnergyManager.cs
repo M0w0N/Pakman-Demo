@@ -17,6 +17,7 @@ public class EnergyManager : MonoBehaviour
     [Header("能量参数")]
     public int maxEnergy = 100;    // 最大能量值
     private int currentEnergy = 0; // 当前能量值
+    public int CurrentEnergy => currentEnergy;  // 外部只读
 
     void Awake()
     {

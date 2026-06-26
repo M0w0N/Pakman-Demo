@@ -28,24 +28,27 @@ public class PauseMenuController : MonoBehaviour
 
     void Update()
     {
-        // 只在按下 ESC 的那一帧处理
-        if (!Input.GetKeyDown(KeyCode.Escape)) return;
-
-        // 如果不在关卡内（主菜单场景是加载状态），不响应暂停
-        if (SceneManager.GetSceneByName(mainMenuSceneName).isLoaded) return;
-
-        // 如果胜利弹窗正开着，不响应暂停 —— 避免暂停菜单盖在结算上面
-        if (ScoreManager.Instance != null
-            && ScoreManager.Instance.panelLevelClear != null
-            && ScoreManager.Instance.panelLevelClear.activeSelf)
+        if (isPaused)
         {
-            return;
+            {
+                // 只在按下 ESC 的那一帧处理
+                if (!Input.GetKeyDown(KeyCode.Escape)) return;
+
+                // 如果不在关卡内（主菜单场景是加载状态），不响应暂停
+                if (SceneManager.GetSceneByName(mainMenuSceneName).isLoaded) return;
+
+                // 如果胜利弹窗正开着，不响应暂停 —— 避免暂停菜单盖在结算上面
+                if (LevelClearPanel.Instance != null
+                    && LevelClearPanel.Instance.IsShowing)
+                {
+                    return;
+                }
+
+                // 切换暂停状态
+                TogglePause();
+            }
         }
-
-        // 切换暂停状态
-        TogglePause();
     }
-
     /// <summary>
     /// 暂停按钮（或 ESC）调用 — 切换暂停/继续
     /// </summary>

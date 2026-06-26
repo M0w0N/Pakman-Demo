@@ -84,10 +84,16 @@ public class PlayerController2D : MonoBehaviour
             if (dashCooldownTimer > 0)
             {
                 Debug.Log("技能正在冷却中，还剩 " + dashCooldownTimer.ToString("F1") + " 秒！");
-                return; // 直接拦截，不执行后续冲刺逻辑
+                return;
             }
 
-            // 如果能走到这里，说明 dashCooldownTimer <= 0，即不在冷却时间内
+            // 检测能量是否足够
+            if (EnergyManager.Instance != null && EnergyManager.Instance.CurrentEnergy < dashEnergyCost)
+            {
+                Debug.Log($"能量不足！当前: {EnergyManager.Instance.CurrentEnergy}, 需要: {dashEnergyCost}");
+                return;
+            }
+
             PerformDash();
         }
 

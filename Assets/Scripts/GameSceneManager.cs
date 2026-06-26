@@ -67,16 +67,11 @@ public class GameSceneManager : MonoBehaviour
 
         MainMenuController.shouldOpenLevelSelectDirectly = true;
 
-        // ========== 新增：在卸载场景前，先把全局常驻的结算弹窗隐藏 ==========
-        if (ScoreManager.Instance != null)
+        // 隐藏通关弹窗
+        if (LevelClearPanel.Instance != null)
         {
-            // 假设你在 ScoreManager 里写过隐藏窗口的方法（例如 HideLevelClearWindow）
-            ScoreManager.Instance.HideLevelClearWindow();
-
-            // 如果你没有写隐藏方法，也可以直接在 ScoreManager 里给物体 SetActive(false)
-            // ScoreManager.Instance.clearWindowObject.SetActive(false);
+            LevelClearPanel.Instance.Hide();
         }
-        // ==================================================================
 
         // 1. 安全卸载当前处于运行中的游戏关卡
         if (!string.IsNullOrEmpty(currentLevelName))

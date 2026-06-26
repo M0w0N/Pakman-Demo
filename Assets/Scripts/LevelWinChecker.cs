@@ -36,7 +36,12 @@ public class LevelWinChecker : MonoBehaviour
 
         totalPellets = config.totalPellets;
 
-        // Hide return marker and hint initially
+        // Hide return marker and hint initially (with auto-find fallback)
+        if (returnPointMarker == null)
+            returnPointMarker = GameObject.Find("ReturnPointMarker");
+        if (returnPointHint == null)
+            returnPointHint = GameObject.Find("ReturnPointHint");
+
         if (returnPointMarker != null)
         {
             returnPointMarker.SetActive(false);
@@ -107,6 +112,9 @@ public class LevelWinChecker : MonoBehaviour
                 break;
 
             case LevelConfig.WinCondition.ReachExitTrigger:
+                {
+                    UnlockReturnPoint();
+                }
                 // TriggerWin() is called externally by an exit trigger
                 break;
         }
@@ -124,7 +132,7 @@ public class LevelWinChecker : MonoBehaviour
     {
         returnUnlocked = true;
 
-        if (returnPointMarker != null)
+        if (returnPointMarker != null && config.winCondition == LevelConfig.WinCondition.ReturnToStart)
         {
             returnPointMarker.SetActive(true);
         }
@@ -139,17 +147,11 @@ public class LevelWinChecker : MonoBehaviour
     /// <summary>
     /// Called by ReturnPointTrigger when player reaches the return zone
     /// </summary>
-    public void OnPlayerReachReturnPoint()
+    public void OnPlayerReachFinishPoint()
     {
-        Debug.Log($"OnPlayerReachReturnPoint called: hasWon={hasWon}, winCondition={config?.winCondition}, returnUnlocked={returnUnlocked}");
+        Debug.Log($"OnPlayerReachFinishPoint called: hasWon={hasWon}, winCondition={config?.winCondition}, returnUnlocked={returnUnlocked}");
 
         if (config == null || hasWon) return;
-
-        if (config.winCondition != LevelConfig.WinCondition.ReturnToStart)
-        {
-            Debug.LogWarning($"OnPlayerReachReturnPoint: winCondition is {config.winCondition}, not ReturnToStart — ignoring.");
-            return;
-        }
 
         if (!returnUnlocked)
         {
@@ -168,17 +170,29 @@ public class LevelWinChecker : MonoBehaviour
         if (hasWon) return;
         hasWon = true;
 
-        // Rating: >= total means 100%, otherwise partial
         int ratingPercent = totalPellets > 0
             ? Mathf.RoundToInt((float)currentEaten / totalPellets * 100f)
             : 100;
 
         Debug.Log($"LevelWinChecker: WIN! Pellets eaten: {currentEaten}/{totalPellets} ({ratingPercent}%)");
 
-        if (ScoreManager.Instance != null)
+        if (LevelClearPanel.Instance != null)
         {
-            // TODO: pass ratingPercent into ShowLevelClearWindow for star/grade display
-            ScoreManager.Instance.ShowLevelClearWindow();
+            LevelClearPanel.Instance.Show();
+        }
+        else
+        {
+            // 兜底：没有 LevelClearPanel 单例时直接操作
+            GameObject panel = GameObject.Find("Panel_LevelClear");
+            if (panel != null)
+            {
+                panel.SetActive(true);
+                Time.timeScale = 0f;
+            }
+            else
+            {
+                Debug.LogError("未找到 Panel_LevelClear！请在常驻场景挂上 LevelClearPanel 脚本，或在场景里放置名为 Panel_LevelClear 的物体。");
+            }
         }
     }
 }

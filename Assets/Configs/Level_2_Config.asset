@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3bf656c5570d59040bf436101166686d, type: 3}
-  m_Name: Level_1_Config
+  m_Name: Level_2_Config
   m_EditorClassIdentifier: 
-  levelName: Tutorial
-  winCondition: 2
-  totalPellets: 34
-  pelletsRequiredForReturn: 34
+  levelName: "\u672A\u547D\u540D\u5173\u5361"
+  winCondition: 0
+  totalPellets: 110
+  pelletsRequiredForReturn: 110
   timeLimitSeconds: 0
