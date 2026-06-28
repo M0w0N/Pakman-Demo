@@ -4,23 +4,28 @@ using UnityEngine.UI;
 public class LevelWinChecker : MonoBehaviour
 {
     [Header("Level Config")]
-    [Tooltip("Drag a LevelConfig asset from Project window here")]
+    [Tooltip("确保拖入的是支持评分进度的最新 LevelConfig 资源")]
     public LevelConfig config;
 
     [Header("UI Bindings")]
-    [Tooltip("Progress bar Slider, leave empty to hide")]
+    [Tooltip("用于显示【评分评级】的动态进度条 Slider")]
     public Slider progressSlider;
-    [Tooltip("Return point marker (ReturnToStart mode only), auto-activated when enough pellets eaten")]
+    [Tooltip("返回点标记（ReturnToStart模式）")]
     public GameObject returnPointMarker;
-    [Tooltip("Hint text (ReturnToStart mode only), auto-activated together with the return point marker")]
+    [Tooltip("返回提示文字（ReturnToStart模式）")]
     public GameObject returnPointHint;
+
     [Header("Progress Bar Target Marker")]
-    [Tooltip("Static marker RectTransform (arrow/line) inside Slider's Fill Area. Auto-positioned at the minimum threshold. Leave empty to skip.")]
+    [Tooltip("静态标记（比如一个箭头/红线），在进度条上标出ReturnToStart需要的硬性吃豆门槛。不需要可留空。")]
     public RectTransform targetMarker;
-    [Tooltip("If true, hides the Slider's built-in handle so only this static marker and fill bar show")]
+    [Tooltip("是否隐藏 Slider 的默认滑块")]
     public bool hideSliderHandle = true;
 
-    // Internal state
+    // 内部联动组件
+    private LevelStopwatch stopwatch;
+
+    // 内部核心状态
+    public float currentProgress = 0f; // 当前评分进度值
     private int totalPellets = 0;
     private int currentEaten = 0;
     private bool hasWon = false;
@@ -30,73 +35,75 @@ public class LevelWinChecker : MonoBehaviour
     {
         if (config == null)
         {
-            Debug.LogWarning("LevelWinChecker: No LevelConfig assigned, script disabled.");
+            Debug.LogWarning("LevelWinChecker: 未分配 LevelConfig，脚本停用。");
             return;
         }
 
+        // 1. 自动获取同物体上的秒表组件进行联动
+        stopwatch = GetComponent<LevelStopwatch>();
+        if (stopwatch == null)
+        {
+            Debug.LogWarning("LevelWinChecker: 未在同一物体上找到 LevelStopwatch 秒表脚本！");
+        }
+
+        // 2. 初始化评分数据
         totalPellets = config.totalPellets;
+        currentProgress = config.initialProgress; // 从配置表读取初始分（如100）
 
-        // Hide return marker and hint initially (with auto-find fallback)
-        if (returnPointMarker == null)
-            returnPointMarker = GameObject.Find("ReturnPointMarker");
-        if (returnPointHint == null)
-            returnPointHint = GameObject.Find("ReturnPointHint");
+        // 3. 兼容处理返回点 UI 隐藏
+        if (returnPointMarker == null) returnPointMarker = GameObject.Find("ReturnPointMarker");
+        if (returnPointHint == null) returnPointHint = GameObject.Find("ReturnPointHint");
+        if (returnPointMarker != null) returnPointMarker.SetActive(false);
+        if (returnPointHint != null) returnPointHint.SetActive(false);
 
-        if (returnPointMarker != null)
-        {
-            returnPointMarker.SetActive(false);
-        }
-        if (returnPointHint != null)
-        {
-            returnPointHint.SetActive(false);
-        }
-
-        // Init progress bar
-        if (progressSlider != null && totalPellets > 0)
+        // 4. 初始化 UI 评分进度条
+        if (progressSlider != null)
         {
             progressSlider.minValue = 0f;
-            progressSlider.maxValue = 1f;
-            progressSlider.value = 0f;
+            progressSlider.maxValue = config.maxProgress; // 最大值为配置表上限
+            progressSlider.value = currentProgress;
 
-            // Hide Slider's built-in handle so it doesn't move with fill
             if (hideSliderHandle && progressSlider.handleRect != null)
             {
                 progressSlider.handleRect.gameObject.SetActive(false);
             }
         }
 
-        // Position the static target marker at the minimum threshold
-        // Parent to the Fill Area *container* (fillRect's parent), not the fill image itself,
-        // so the marker stays fixed while the fill bar grows.
-        if (targetMarker != null && totalPellets > 0)
+        // 5. 初始化吃豆硬性门槛标记 (仅用于 ReturnToStart)
+        if (targetMarker != null && totalPellets > 0 && config.winCondition == LevelConfig.WinCondition.ReturnToStart)
         {
-            float threshold = (float)config.pelletsRequiredForReturn / totalPellets;
+            // 注意：这里算的是【吃豆解锁进度】。如果是新版时间系统，你也可以删掉它，或者用来标记 S 级的硬性线
+            float thresholdPct = (float)config.pelletsRequiredForReturn / totalPellets;
             RectTransform fillAreaContainer = progressSlider?.fillRect?.parent as RectTransform;
             if (fillAreaContainer != null)
             {
                 targetMarker.SetParent(fillAreaContainer, false);
                 targetMarker.pivot = new Vector2(0.5f, 0.5f);
-                // Anchor at the threshold percentage — stays fixed regardless of Fill Area's pixel size
-                targetMarker.anchorMin = new Vector2(threshold, 0.5f);
-                targetMarker.anchorMax = new Vector2(threshold, 0.5f);
+                targetMarker.anchorMin = new Vector2(thresholdPct, 0.5f);
+                targetMarker.anchorMax = new Vector2(thresholdPct, 0.5f);
                 targetMarker.anchoredPosition = Vector2.zero;
             }
         }
+        else if (targetMarker != null)
+        {
+            targetMarker.gameObject.SetActive(false); // 其他模式隐藏该硬性标记
+        }
 
-        Debug.Log($"LevelWinChecker: [{config.levelName}], winCondition = {config.winCondition}");
+        Debug.Log($"LevelWinChecker: [{config.levelName}] 初始化成功，初始评分: {currentProgress}");
     }
 
     void Update()
     {
         if (config == null || hasWon) return;
 
+        // 【核心联动逻辑 1】：随时间扣除进度条评分
+        UpdateProgressDrain();
+
+        // 计算吃了多少豆子（用于解锁 Return 终点）
         int remaining = GameObject.FindGameObjectsWithTag("Reward").Length;
         currentEaten = totalPellets - remaining;
 
-        // Progress bar — always totalPellets as denominator
-        UpdateProgressBar();
-
-        // Win condition check
+        // 检查各种胜利条件的【解锁状态】
         switch (config.winCondition)
         {
             case LevelConfig.WinCondition.EatAllPellets:
@@ -108,91 +115,135 @@ public class LevelWinChecker : MonoBehaviour
                 {
                     UnlockFinishPoint();
                 }
-                // Win is triggered by OnPlayerReachReturnPoint()
                 break;
 
             case LevelConfig.WinCondition.ReachExitTrigger:
+                if (!returnUnlocked)
                 {
-                    UnlockFinishPoint();
+                    UnlockFinishPoint(); // 走格子直接激活终点
                 }
-                // TriggerWin() is called externally by an exit trigger
                 break;
         }
     }
 
-    private void UpdateProgressBar()
+    /// <summary>
+    /// 每帧执行：随时间倒扣评分，并更新 UI
+    /// </summary>
+    private void UpdateProgressDrain()
     {
-        if (progressSlider == null || totalPellets <= 0) return;
+        // 随时间减少
+        currentProgress -= config.progressDrainPerSecond * Time.deltaTime;
+        currentProgress = Mathf.Clamp(currentProgress, 0f, config.maxProgress);
 
-        // Always denominator = totalPellets.  ReturnToStart can pass without full bar.
-        progressSlider.value = Mathf.Clamp01((float)currentEaten / totalPellets);
+        // 更新 UI
+        if (progressSlider != null)
+        {
+            progressSlider.value = currentProgress;
+        }
+
+        // 惩罚机制：如果进度条彻底扣光，判定为失败（你可以自己决定要不要加这个）
+        if (currentProgress <= 0f)
+        {
+            TriggerGameOver();
+        }
+    }
+
+    /// <summary>
+    /// 【核心联动逻辑 2】：当主角在外界吃豆子时，由主角脚本主动调用这个方法，补充评分
+    /// </summary>
+    public void OnPlayerEatPellet()
+    {
+        if (hasWon || config == null) return;
+
+        // 加上配置表里的奖励分
+        currentProgress += config.progressGainPerPellet;
+        currentProgress = Mathf.Clamp(currentProgress, 0f, config.maxProgress);
+
+        if (progressSlider != null)
+        {
+            progressSlider.value = currentProgress;
+        }
+
+        Debug.Log($"吃到豆子！当前评分上涨至: {currentProgress}");
     }
 
     private void UnlockFinishPoint()
     {
         returnUnlocked = true;
-
-        if (returnPointMarker != null)
-        {
-            returnPointMarker.SetActive(true);
-        }
+        if (returnPointMarker != null) returnPointMarker.SetActive(true);
         if (returnPointHint != null && config.winCondition == LevelConfig.WinCondition.ReturnToStart)
         {
             returnPointHint.SetActive(true);
         }
-
-        Debug.Log($"Return point unlocked! Eaten {config.pelletsRequiredForReturn} pellets, head back now.");
     }
 
-    /// <summary>
-    /// Called by ReturnPointTrigger when player reaches the return zone
-    /// </summary>
     public void OnPlayerReachFinishPoint()
     {
-        Debug.Log($"OnPlayerReachFinishPoint called: hasWon={hasWon}, winCondition={config?.winCondition}, returnUnlocked={returnUnlocked}");
-
         if (config == null || hasWon) return;
-
-        if (!returnUnlocked)
-        {
-            Debug.Log("OnPlayerReachReturnPoint: return point NOT yet unlocked — ignoring.");
-            return;
-        }
+        if (!returnUnlocked) return;
 
         TriggerWin();
     }
 
     /// <summary>
-    /// Public win entry point. Callable from exit triggers, buttons, etc.
+    /// 触发胜利结算
     /// </summary>
     public void TriggerWin()
     {
         if (hasWon) return;
         hasWon = true;
 
-        int ratingPercent = totalPellets > 0
-            ? Mathf.RoundToInt((float)currentEaten / totalPellets * 100f)
-            : 100;
+        // 【核心联动逻辑 3】：通知秒表停止计时
+        float finalTime = 0f;
+        if (stopwatch != null)
+        {
+            stopwatch.StopTimer(); // 停止秒表
+            finalTime = stopwatch.getTime(); // 拿到最终通关秒数
+        }
 
-        Debug.Log($"LevelWinChecker: WIN! Pellets eaten: {currentEaten}/{totalPellets} ({ratingPercent}%)");
+        // 【核心联动逻辑 4】：根据最终剩余进度百分比计算评级
+        float finalPct = (currentProgress / config.maxProgress) * 100f;
+        string finalRank = "C"; // 保底
 
+        foreach (var rank in config.rankThresholds)
+        {
+            if (finalPct >= rank.minProgressPct)
+            {
+                finalRank = rank.rankName;
+                break; // 匹配到最高符合的就跳出
+            }
+        }
+
+        Debug.Log($"【通关结算】用时: {finalTime:F2}, 剩余评分比: {finalPct:F1}%, 最终评级: {finalRank}");
+
+        // 【核心联动逻辑 5】：将最终评级和时间，传递给面板展示
         if (LevelClearPanel.Instance != null)
         {
+            // 如果你的面板脚本支持传参，可以直接：
+            // LevelClearPanel.Instance.ShowResult(finalRank, finalTime);
             LevelClearPanel.Instance.Show();
         }
         else
         {
-            // 兜底：没有 LevelClearPanel 单例时直接操作
             GameObject panel = GameObject.Find("Panel_LevelClear");
             if (panel != null)
             {
                 panel.SetActive(true);
                 Time.timeScale = 0f;
             }
-            else
-            {
-                Debug.LogError("未找到 Panel_LevelClear！请在常驻场景挂上 LevelClearPanel 脚本，或在场景里放置名为 Panel_LevelClear 的物体。");
-            }
         }
+    }
+
+    /// <summary>
+    /// 进度归零时的失败判定
+    /// </summary>
+    private void TriggerGameOver()
+    {
+        hasWon = true; // 拦截不再触发胜利
+        if (stopwatch != null) stopwatch.StopTimer();
+
+        Debug.Log("【游戏失败】评分进度条已耗尽！");
+        // 这里可以打开你的失败面板，例如：GameOverPanel.Instance.Show();
+        Time.timeScale = 0f;
     }
 }

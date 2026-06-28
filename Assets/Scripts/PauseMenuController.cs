@@ -28,7 +28,7 @@ public class PauseMenuController : MonoBehaviour
 
     void Update()
     {
-        if (isPaused)
+        if (!isPaused)
         {
             {
                 // 只在按下 ESC 的那一帧处理
