@@ -20,7 +20,7 @@ public class LevelConfig : ScriptableObject
     {
         public string rankName;       // 评级名称，如 "S", "A", "B", "C"
         [Range(0f, 100f)]
-        public float minProgressPct;  // 达到该评级所需的最低进度百分比 (0-100)
+        public float minRatingPct;  // 达到该评级所需的最低进度百分比 (0-100)
     }
 
     [Header("基本信息")]
@@ -44,24 +44,24 @@ public class LevelConfig : ScriptableObject
     [Header("=== 评分/评级进度条配置 ===")]
 
     [Tooltip("进度条的最大值（通常为100）")]
-    public float maxProgress = 100f;
+    public float maxRating = 100f;
 
     [Tooltip("开局时的初始进度值")]
-    public float initialProgress = 50f;
+    public float initialRating = 50f;
 
     [Tooltip("每秒钟进度条自动减少的数值")]
-    public float progressDrainPerSecond = 2f;
+    public float ratingDrainPerSecond = 2f;
 
     [Tooltip("每吃一颗豆子回复的进度数值")]
-    public float progressGainPerPellet = 5f;
+    public float ratingGainPerPellet = 5f;
 
     [Header("评级阈值设置 (请按从高到低顺序填写)")]
     [Tooltip("例如：S->80, A->50, B->20")]
     public List<RankData> rankThresholds = new List<RankData>()
     {
-        new RankData { rankName = "S", minProgressPct = 80f },
-        new RankData { rankName = "A", minProgressPct = 50f },
-        new RankData { rankName = "B", minProgressPct = 20f },
-        new RankData { rankName = "C", minProgressPct = 0f }
+        new RankData { rankName = "S", minRatingPct = 80f },
+        new RankData { rankName = "A", minRatingPct = 50f },
+        new RankData { rankName = "B", minRatingPct = 20f },
+        new RankData { rankName = "C", minRatingPct = 0f }
     };
 }

@@ -17,3 +17,16 @@ MonoBehaviour:
   totalPellets: 20
   pelletsRequiredForReturn: 10
   timeLimitSeconds: 0
+  maxProgress: 100
+  initialProgress: 50
+  progressDrainPerSecond: 2
+  progressGainPerPellet: 5
+  rankThresholds:
+  - rankName: S
+    minProgressPct: 80
+  - rankName: A
+    minProgressPct: 50
+  - rankName: B
+    minProgressPct: 20
+  - rankName: C
+    minProgressPct: 0

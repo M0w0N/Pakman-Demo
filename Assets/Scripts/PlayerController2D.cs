@@ -7,6 +7,8 @@ public class PlayerController2D : MonoBehaviour
     private Rigidbody2D rb;
     private Camera mainCam;
 
+    private LevelWinChecker winChecker;
+
     public float gravityStrength = 6f; // 引力强度，可以在 Inspector 中调整
     public float maxSpeed = 6f; // 主角的最大速度，防止被引力拉得过快
 
@@ -48,6 +50,8 @@ public class PlayerController2D : MonoBehaviour
 
         // 记录初始大小，用于强化结束后复原
         originalScale = transform.localScale;
+
+        winChecker = Object.FindFirstObjectByType<LevelWinChecker>();
     }
 
     void FixedUpdate()
@@ -123,7 +127,7 @@ public class PlayerController2D : MonoBehaviour
             {
                 EnergyManager.Instance.AddEnergy(rewardEnergyGain); // 每吃一个豆子增加能量
             }
-
+            winChecker.OnPlayerEatPellet();
             // AudioSource.PlayClipAtPoint(...);
 
             // 完美的物理销毁：把被吃掉的豆子从世界里抹去

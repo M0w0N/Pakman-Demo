@@ -16,7 +16,7 @@ public class LevelWinChecker : MonoBehaviour
     public GameObject returnPointHint;
 
     [Header("Progress Bar Target Marker")]
-    [Tooltip("静态标记（比如一个箭头/红线），在进度条上标出ReturnToStart需要的硬性吃豆门槛。不需要可留空。")]
+    [Tooltip("静态标记，在进度条上标出ReturnToStart需要的硬性吃豆门槛。不需要可留空。")]
     public RectTransform targetMarker;
     [Tooltip("是否隐藏 Slider 的默认滑块")]
     public bool hideSliderHandle = true;
@@ -48,7 +48,7 @@ public class LevelWinChecker : MonoBehaviour
 
         // 2. 初始化评分数据
         totalPellets = config.totalPellets;
-        currentProgress = config.initialProgress; // 从配置表读取初始分（如100）
+        currentProgress = config.initialRating; // 从配置表读取初始分（如100）
 
         // 3. 兼容处理返回点 UI 隐藏
         if (returnPointMarker == null) returnPointMarker = GameObject.Find("ReturnPointMarker");
@@ -60,7 +60,7 @@ public class LevelWinChecker : MonoBehaviour
         if (progressSlider != null)
         {
             progressSlider.minValue = 0f;
-            progressSlider.maxValue = config.maxProgress; // 最大值为配置表上限
+            progressSlider.maxValue = config.maxRating; // 最大值为配置表上限
             progressSlider.value = currentProgress;
 
             if (hideSliderHandle && progressSlider.handleRect != null)
@@ -132,8 +132,8 @@ public class LevelWinChecker : MonoBehaviour
     private void UpdateProgressDrain()
     {
         // 随时间减少
-        currentProgress -= config.progressDrainPerSecond * Time.deltaTime;
-        currentProgress = Mathf.Clamp(currentProgress, 0f, config.maxProgress);
+        currentProgress -= config.ratingDrainPerSecond * Time.deltaTime;
+        currentProgress = Mathf.Clamp(currentProgress, 0f, config.maxRating);
 
         // 更新 UI
         if (progressSlider != null)
@@ -141,11 +141,13 @@ public class LevelWinChecker : MonoBehaviour
             progressSlider.value = currentProgress;
         }
 
-        // 惩罚机制：如果进度条彻底扣光，判定为失败（你可以自己决定要不要加这个）
+        
+       /* 惩罚机制：如果进度条彻底扣光，判定为失败（你可以自己决定要不要加这个）
         if (currentProgress <= 0f)
         {
-            TriggerGameOver();
+            TriggerReplayHint();
         }
+        */
     }
 
     /// <summary>
@@ -156,8 +158,8 @@ public class LevelWinChecker : MonoBehaviour
         if (hasWon || config == null) return;
 
         // 加上配置表里的奖励分
-        currentProgress += config.progressGainPerPellet;
-        currentProgress = Mathf.Clamp(currentProgress, 0f, config.maxProgress);
+        currentProgress += config.ratingGainPerPellet;
+        currentProgress = Mathf.Clamp(currentProgress, 0f, config.maxRating);
 
         if (progressSlider != null)
         {
@@ -202,12 +204,12 @@ public class LevelWinChecker : MonoBehaviour
         }
 
         // 【核心联动逻辑 4】：根据最终剩余进度百分比计算评级
-        float finalPct = (currentProgress / config.maxProgress) * 100f;
+        float finalPct = (currentProgress / config.maxRating) * 100f;
         string finalRank = "C"; // 保底
 
         foreach (var rank in config.rankThresholds)
         {
-            if (finalPct >= rank.minProgressPct)
+            if (finalPct >= rank.minRatingPct)
             {
                 finalRank = rank.rankName;
                 break; // 匹配到最高符合的就跳出
@@ -220,8 +222,7 @@ public class LevelWinChecker : MonoBehaviour
         if (LevelClearPanel.Instance != null)
         {
             // 如果你的面板脚本支持传参，可以直接：
-            // LevelClearPanel.Instance.ShowResult(finalRank, finalTime);
-            LevelClearPanel.Instance.Show();
+            LevelClearPanel.Instance.Show(finalRank, finalTime);
         }
         else
         {

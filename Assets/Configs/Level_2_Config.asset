@@ -13,7 +13,20 @@ MonoBehaviour:
   m_Name: Level_2_Config
   m_EditorClassIdentifier: 
   levelName: "\u672A\u547D\u540D\u5173\u5361"
-  winCondition: 0
+  winCondition: 2
   totalPellets: 110
   pelletsRequiredForReturn: 110
   timeLimitSeconds: 0
+  maxRating: 100
+  initialRating: 40
+  ratingDrainPerSecond: 0
+  ratingGainPerPellet: 5
+  rankThresholds:
+  - rankName: S
+    minRatingPct: 80
+  - rankName: A
+    minRatingPct: 50
+  - rankName: B
+    minRatingPct: 20
+  - rankName: C
+    minRatingPct: 0

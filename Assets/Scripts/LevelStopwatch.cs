@@ -13,8 +13,14 @@ public class LevelStopwatch : MonoBehaviour
 
     // 属性：让其他脚本（如评级系统、结算面板）能直接获取最终用时
     public float ElapsedTime { get; private set; }
+    public static LevelStopwatch Instance { get; private set; }
 
     private bool isRunning = false;
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
