@@ -17,9 +17,9 @@ MonoBehaviour:
   totalPellets: 110
   pelletsRequiredForReturn: 110
   timeLimitSeconds: 0
-  maxRating: 100
-  initialRating: 40
-  ratingDrainPerSecond: 4
+  maxRating: 200
+  initialRating: 50
+  ratingDrainPerSecond: 3
   ratingGainPerPellet: 2
   rankThresholds:
   - rankName: S

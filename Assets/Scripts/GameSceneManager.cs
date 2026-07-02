@@ -1,11 +1,15 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class GameSceneManager : MonoBehaviour
 {
     public static GameSceneManager Instance { get; private set; }
 
     private string currentLevelName = "";
+    
+    //关卡重置标记，防止重复触发
+    private bool isResetting = false;
 
     void Awake()
     {
@@ -22,6 +26,15 @@ public class GameSceneManager : MonoBehaviour
         LoadMainMenu();
     }
 
+    private void Update()
+    {
+        // 监听玩家按下重置键（例如键盘上的 R 键）
+        if (Input.GetKeyDown(KeyCode.R) && !isResetting && !string.IsNullOrEmpty(currentLevelName))
+        {
+            ReplayCurrentLevel();
+        }
+    }
+
     // 加载主菜单
     public void LoadMainMenu()
     {
@@ -34,7 +47,7 @@ public class GameSceneManager : MonoBehaviour
 
         // 使用 Additive 模式叠加主菜单
         SceneManager.LoadScene("Scene_MainMenu", LoadSceneMode.Additive);
-    }
+    } 
 
     // 切换到具体关卡（由主菜单按钮，或者通关触碰点触发）
     public void LoadLevel(string levelName)
@@ -89,19 +102,56 @@ public class GameSceneManager : MonoBehaviour
 
     public void ReplayCurrentLevel()
     {
-        // 恢复游戏物理时间   
+        if (isResetting) return;
+
+        // 开启协程执行“异步卸载并重载”
+        StartCoroutine(ResetLevelCoroutine());
+    }
+
+    // ⏳ 核心重置协程
+    private IEnumerator ResetLevelCoroutine()
+    {
+        isResetting = true;
+        Debug.Log($"🔄 开始重置关卡: {currentLevelName}");
+
+        // 1. 恢复游戏物理时间和状态（防止因为之前通关/暂停导致的 Time.timeScale = 0）
         Time.timeScale = 1f;
 
-        // 清理分数
+        // 2. 隐藏通关结算/暂停面板（通过面板自身的单例隐藏，而不是关闭整个常驻脚本）
+        if (LevelClearPanel.Instance != null)
+        {
+            LevelClearPanel.Instance.Hide();
+        }
+
+        // 3. 局内数据清理（如重置分数等全局单例）
         if (ScoreManager.Instance != null)
         {
             ScoreManager.Instance.currentScore = 0;
         }
 
-        // 2. 隐藏掉通关弹窗自己
-        gameObject.SetActive(false);
+        // 4. 【关键】异步卸载当前的关卡子场景
+        AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(currentLevelName);
+        while (!unloadOp.isDone)
+        {
+            yield return null; // 等待卸载彻底完成，这会清空物理世界里的所有动态垃圾、敌人和弹道
+        }
 
-        // 3. 重新加载这个场景，实现物理世界的彻底重置
-        SceneManager.LoadScene(currentLevelName);
+        // 5. 【关键】重新以 Additive (叠加) 模式加载该子场景
+        AsyncOperation loadOp = SceneManager.LoadSceneAsync(currentLevelName, LoadSceneMode.Additive);
+        while (!loadOp.isDone)
+        {
+            yield return null; // 等待加载彻底完成
+        }
+
+        // 6. 可选：如果你需要让新加载出来的场景物体作为活动场景（比如物理引力计算需要），可以激活它
+        Scene newScene = SceneManager.GetSceneByName(currentLevelName);
+        if (newScene.IsValid())
+        {
+            SceneManager.SetActiveScene(newScene);
+        }
+
+        // 7. 重置完成，释放标记
+        isResetting = false;
+        Debug.Log($"✨ 关卡 {currentLevelName} 重置彻底完成！");
     }
 }
